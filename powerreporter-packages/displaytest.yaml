@@ -1,0 +1,96 @@
+###############################################################
+#
+#  TFT Display config
+#
+#   vars:
+#     disp_clk_pin: GPIO18 / GPIO14
+#     disp_mosi_pin: GPIO13 / GPIO23
+#     disp_miso_pin: GPIO12 / GPIO29
+#     disp_cs_pin:
+#     disp_reset_pin:
+#
+###############################################################
+spi:
+  id: spi_display
+  clk_pin: ${disp_clk_pin} # GPIO14 / VSPI-GPIO18
+  mosi_pin: ${disp_mosi_pin} # GPIO13 / VSPI-GPIO23
+  miso_pin: ${disp_miso_pin} # GPIO12 / VSPI-GPIO19
+
+font:
+  - file: "gfonts://Roboto"
+    id: mono20
+    size: 20
+  - file: "gfonts://Roboto"
+    id: mono8
+    size: 10
+
+
+color:
+  - id: text_danger
+    red: 100%
+    green: 17%
+    blue: 10%
+  - id: text_info
+    red: 80%
+    green: 80%
+    blue: 80%
+  - id: text_success
+    red: 10%
+    green: 100%
+    blue: 17%
+
+image:
+  - id: img_sun_on
+    file: mdi:weather-sunny
+    resize: 40x40
+  - id: img_sun_off
+    file: mdi:weather-sunny-off
+    resize: 40x40
+  - id: img_grid_power_on
+    file: mdi:transmission-tower
+    resize: 40x40
+  - id: img_grid_power_off
+    file: mdi:transmission-tower-off
+    resize: 40x40
+  - id: img_grid_power_import
+    file: mdi:transmission-tower-import
+    resize: 40x40
+  - id: img_grid_power_export
+    file: mdi:transmission-tower-export
+    resize: 40x40
+  - id: img_battery_icon
+    file: mdi:car-battery
+    resize: 40x40
+
+
+#     0                   1                   2                     3
+#     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 012
+#     050505050505050505050505050505050505050505050505050505050505050
+#    +---------------------------------------------------------------+
+# 000|              
+# 020|                               
+# 040|                         
+# 060|                    |                       |
+# 080|                    | O     3.7kWh          |
+# 100|                    |                       |
+# 120|                    +-------------------+
+# 140|                    |                       |
+# 160|                    |                       |
+# 180|                    |                       |
+# 200|                    |                       |
+# 220|                     
+# 240|                      
+display:
+  - platform: ili9xxx
+    spi_id: spi_display
+    model: ili9341 # MSSTACK, TFT 2.4, TFT 2.4R, S3BOX, S3BOX_LITE, ILI9341, ILI9342, ILI9481, ILI9486, ILI9488, ILI9488_A
+    cs_pin: ${disp_cs_pin}
+    dc_pin: ${disp_dc_pin}
+    reset_pin: ${disp_reset_pin}
+    rotation: 90 # 180, 270
+    data_rate: 10MHz
+#    color_palette: GRAYSCALE
+#    dimensions: 320x240
+    lambda: |-
+      it.fill(Color::BLACK);
+      it.printf(200,30,id(mono8),id(text_info),"HELLO WORLD");

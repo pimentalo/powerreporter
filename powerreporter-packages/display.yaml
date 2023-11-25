@@ -1,0 +1,191 @@
+###############################################################
+#
+#  TFT Display config
+#
+#   vars:
+#     disp_clk_pin: GPIO18 / GPIO14
+#     disp_mosi_pin: GPIO13 / GPIO23
+#     disp_miso_pin: GPIO12 / GPIO29
+#     disp_cs_pin:
+#     disp_reset_pin:
+#
+###############################################################
+spi:
+  id: spi_display
+  clk_pin: ${disp_clk_pin} # GPIO14 / VSPI-GPIO18
+  mosi_pin: ${disp_mosi_pin} # GPIO13 / VSPI-GPIO23
+  miso_pin: ${disp_miso_pin} # GPIO12 / VSPI-GPIO19
+
+font:
+  - file: "gfonts://Roboto"
+    id: mono20
+    size: 20
+  - file: "gfonts://Roboto"
+    id: mono16
+    size: 16
+  - file: "gfonts://Roboto"
+    id: mono8
+    size: 10
+
+
+color:
+  - id: text_alert
+    red: 100%
+    green: 70%
+    blue: 10%
+  - id: text_danger
+    red: 100%
+    green: 17%
+    blue: 10%
+  - id: text_info
+    red: 80%
+    green: 80%
+    blue: 80%
+  - id: text_success
+    red: 10%
+    green: 100%
+    blue: 17%
+
+
+sensor:
+  - platform: wifi_signal # Reports the WiFi signal strength/RSSI in dB
+    name: "WiFi Signal dB"
+    id: wifi_signal_db
+    update_interval: 30s
+    entity_category: "diagnostic"
+  - platform: copy # Reports the WiFi signal strength in %
+    source_id: wifi_signal_db
+    name: "WiFi Signal Percent"
+    filters:
+      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
+    unit_of_measurement: "Signal %"
+    entity_category: "diagnostic"
+
+image:
+  - id: img_sun_on
+    file: mdi:weather-sunny
+    resize: 40x40
+  - id: img_sun_off
+    file: mdi:weather-sunny-off
+    resize: 40x40
+  - id: img_grid_power_on
+    file: mdi:transmission-tower
+    resize: 40x40
+  - id: img_grid_power_off
+    file: mdi:transmission-tower-off
+    resize: 40x40
+  - id: img_grid_power_import
+    file: mdi:transmission-tower-import
+    resize: 40x40
+  - id: img_grid_power_export
+    file: mdi:transmission-tower-export
+    resize: 40x40
+  - id: img_battery_high
+    file: mdi:battery-high
+    resize: 40x40
+  - id: img_battery_medium
+    file: mdi:battery-medium
+    resize: 40x40
+  - id: img_battery_low
+    file: mdi:battery-low
+    resize: 40x40
+  - id: img_battery_empty
+    file: mdi:battery-outline
+    resize: 40x40
+  - id: img_battery_off
+    file: mdi:battery-off
+    resize: 40x40
+  - id: img_battery_unknown
+    file: mdi:battery-unknown
+    resize: 40x40
+  - id: img_home_import_big
+    file: mdi:home-import-outline
+    resize: 80x80
+  - id: img_home_export_big
+    file: mdi:home-export-outline
+    resize: 80x80
+  - id: img_grid_power_big
+    file: mdi:transmission-tower
+    resize: 80x80
+
+
+#
+# Display is in 3 areas:
+#  Upper area:   current battery level /sun production / total load
+#
+#  Center:  iconic represantation: grid to home or home to grid
+#              Total energy 
+#
+#  Lower: page 1: totals
+#         page 2: temperatures...
+#
+display:
+  - platform: ili9xxx
+    spi_id: spi_display
+    model: ili9341 # MSSTACK, TFT 2.4, TFT 2.4R, S3BOX, S3BOX_LITE, ILI9341, ILI9342, ILI9481, ILI9486, ILI9488, ILI9488_A
+    cs_pin: ${disp_cs_pin}
+    dc_pin: ${disp_dc_pin}
+    reset_pin: ${disp_reset_pin}
+    rotation: 90 # 180, 270
+#    data_rate: 20MHz
+#    color_palette: GRAYSCALE
+#    dimensions: 320x240
+    lambda: |-
+      it.fill(Color::BLACK);
+      // UPPER AREA:
+      // Left: battery status     Center: solar production        Right: total Load
+      if (isnan(id(inverter_battery_residual_power).state))
+      { 
+          it.image(0,0,id(img_battery_unknown));
+          it.printf(50,10,id(mono16),id(text_alert),"? %%");
+      } else {
+         if(id(inverter_battery_residual_power).state > 80) 
+            it.image(0,0,id(img_battery_high));
+         else if(id(inverter_battery_residual_power).state > 50) 
+            it.image(0,0,id(img_battery_medium));
+         else if(id(inverter_battery_residual_power).state > 25) 
+            it.image(0,0,id(img_battery_low));
+         else 
+            it.image(0,0,id(img_battery_empty));
+         it.printf(50,10,id(mono16),id(text_success),"%.0f %%",id(inverter_battery_residual_power).state);
+      }
+      // solar production: if 0 or less: sun icon is dashed, else sun icon is bright
+      if (id(inverter_power_generation).state > 0)
+      {  // generating photo voltaic
+         it.image(100,0,id(img_sun_on));
+         it.printf(150,10,id(mono16),id(text_success),"%.1f kWh",id(inverter_power_generation).state);
+      } else {
+         it.image(100,0,id(img_sun_off));
+         it.printf(150,10,id(mono16),id(text_danger),"%.1f kWh",id(inverter_power_generation).state);
+      }
+      // total load
+      if (id(inverter_load_power).state > 0)
+      {  // exporting 
+         it.image(200,0,id(img_grid_power_import));
+         it.printf(250,10,id(mono16),id(text_success)," %.1f kWh",id(inverter_load_power).state);
+      } else {
+         it.image(200,0,id(img_grid_power_export));
+         it.printf(250,10,id(mono16),id(text_danger)," %.1f kWh",id(inverter_load_power).state);
+      }
+      // CENTER AREA
+      //   Grid + Home + arrow
+      if (id(inverter_feed_in_out).state >= 0) {
+         // Production !!!
+         //it.image(40,50,id(img_grid_power_big)); // grid
+         it.image(160-80/2,50,id(img_home_export_big)); // home
+         it.image(320-40-80,50,id(img_grid_power_big)); // grid
+         it.printf(160-80/2,140,id(mono20),id(text_info),"+ %.2f kWh",id(inverter_load_power).state);
+      } else {
+         // Production !!!
+         it.image(40,50,id(img_grid_power_big)); // grid
+         it.image(160-80/2,50,id(img_home_import_big)); // home
+         //it.image(320-40-80,50,id(img_grid_power_big)); // grid
+         it.printf(160-80/2,140,id(mono20),id(text_danger),"- %.2f kWh",id(inverter_load_power).state);
+      }
+      // Lower part
+      it.printf(0,190,id(mono8),id(text_info),"Tot Exp°: %.0f kWh",id(inverter_today_export).state);
+      it.printf(100,190,id(mono8),id(text_info),"Tot Sol°: %.0f kWh",id(inverter_today_generation).state);
+      it.printf(200,190,id(mono8),id(text_info),"Tot Imp°: %.0f kWh",id(inverter_today_import).state);
+      it.printf(0,215,id(mono8),id(text_info),"BAT T°: %.0f °C",id(inverter_battery_temperature).state);
+      it.printf(100,215,id(mono8),id(text_info),"INN T°: %.0f °C",id(inverter_inner_temperature).state);
+      it.printf(200,215,id(mono8),id(text_info),"HEA T°: %.0f °C",id(inverter_heatsink_temperature).state);

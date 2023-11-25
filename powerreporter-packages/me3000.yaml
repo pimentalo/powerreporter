@@ -1,0 +1,689 @@
+#################################################"
+# SOFAR Solar ME3000 via Modbus
+#--- Usage: 
+# packages:
+#   me3000: !include
+#     file: me3000.yaml
+#     vars: 
+#       uart_rx: GPIO16
+#       uart_tx: GPIO17
+#       flow_control: GPIO5
+#       modbus_address: 0x01
+
+uart:
+  - id: uart_modbus
+    rx_pin: ${uart_rx}
+    tx_pin: ${uart_tx}
+    baud_rate: 9600
+    stop_bits: 1
+#    debug:
+
+modbus:
+  id: modbus_sofar
+  flow_control_pin: ${flow_control} # GPIO05
+  uart_id: uart_modbus
+
+modbus_controller:
+  - id: sofarME3000
+    modbus_id: modbus_sofar
+    address: ${modbus_address} #modbus device address
+    update_interval: 30s # 30 seconds check
+    setup_priority: -10
+#    command_throttle: 100ms
+
+
+#sensor:
+# 0x0206 UINT16 Grid A voltage (0~1000V - 0.1V)
+# 0x0208 SINT16 Grid A current (-20~20A - 0.01A)
+# 0x0209 UINT16 Grid B voltage (0~1000V - 0.1V)
+# 0x0208 SINT16 Grid B current (-20~20A - 0.01A)
+# 0x020A UINT16 Grid C voltage (0~1000V - 0.1V)
+# 0x020B SINT16 Grid C current (-20~20A - 0.01A)
+# 0x020C UINT16 Grid frequency ( - 0.01Hz)
+# 0x020D SINT16 Charge/discharge power (-10~10kW - 0.01kW)
+# 0x020E UINT16 Battery voltage (0~100V - 0.1V)
+# 0x020F SINT16 Battery charge/discharge current (-100~100A - 0.01A)
+# 0x0210 UINT16 Residual battery capacity (0~100% - 1%)
+# 0x0211 ? Battery temperature (?)
+# 0x0212 SINT16 Feed in/out power (-10~10kW - 0.01kW)
+# 0x0213 UINT16 Power of the load (0~10kW - 0.01kW)
+# 0x0214 SINT16 Input/Output power (-10~10kW - 0.01kW)
+# 0x0215 UINT16 Power of generation (0~10kW - 0.01kW)
+# 0x0216 UINT16 EPS output voltage (0.1V)
+# 0x0217 UINT16 EPS output power (0.01kW)
+# 0x0218 UINT16 Generation of one day (0.01kW)
+# 0x0219 UINT16 Power export to grid of today (0.01kW)
+# 0x021A UINT16 Power import from grid of today (0.01kW)
+# 0x021B UINT16 Today's power consumption (0.01kW)
+# 0x021C UINT16*2 Power generation (1kWh)
+# 0x021D 
+# 0x021E UINT16*2 Total energy export (1kWh)
+# 0x021F 
+# 0x0220 UINT16*2 Total energy import (1kWh)
+# 0x0221
+# 0x0222 UINT16*2 Total consumption (1kWh)
+# 0x0223
+# 0x022A UINT16 Count down Time
+# 0x022B UINT16 Inverter alert message
+# 0x022C UINT16 Battery Cycle Time
+# 0x022D UINT16 INV bus voltage
+# 0x022E UINT16 LLC bus voltage
+# 0x022F UINT16 Buck current
+# 0x0230 UINT16 Grid R voltage (0.1V)
+# 0x0231 UINT16 Grid R current (0.01A)
+# 0x0232 UINT16 Grid S voltage (0.1V)
+# 0x0233 UINT16 Grid S current (0.01A)
+# 0x0234 UINT16 Grid T voltage (0.1V)
+# 0x0235 UINT16 Grid T current (0.01A)
+# 0x0236 UINT16 Generation current (0-100)
+# 0x0237 SINT16 Battery power (reserved)
+# 0x0238 SINT16 Inner Temperature (1°C -127~+127)
+# 0x0239 SINT16 Heat sink Temperature (1°C -127~+127)
+# 0x023A UINT16 Country code
+# 0x0234
+#  - platform: modbus_controller
+#    modbus_controller_id: sofarME3000
+#    id: inverter_charge_discharge_power
+#    name: "inverter_charge_discharge_power"
+#    address: 0x020D
+#    unit_of_measurement: "W"
+#    register_type: read
+#    value_type: S_WORD
+#    accuracy_decimalss: 1
+#    skip_updates: 60
+#    filters:
+#      - multiply: 0.01
+sensor:
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    id: inverter_charge_discharge_power
+    name: "inverter_charge_discharge_power"
+    device_class: "energy"
+    address: 0x020D
+    unit_of_measurement: "kW"
+    register_type: holding
+    value_type: S_WORD
+    state_class: "measurement"
+    filters:
+      - multiply: 0.1
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    id: inverter_battery_voltage
+    name: "inverter_battery_voltage"
+    address: 0x020E
+    unit_of_measurement: "V"
+    accuracy_decimals: 1
+    register_type: holding
+    state_class: "measurement"
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    id: inverter_battery_charge_discharge_current
+    name: "inverter_battery_charge_discharge_current"
+    address: 0x020F
+    device_class: "current"
+    unit_of_measurement: "A"
+    accuracy_decimals: 2
+    state_class: "measurement"
+    register_type: holding
+    value_type: S_WORD
+    filters:
+      - multiply: 0.01
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    id: inverter_battery_residual_power
+    name: "inverter_battery_residual_power"
+    device_class: "battery"
+    address: 0x0210
+    unit_of_measurement: "%"
+    state_class: "measurement"
+    register_type: holding
+    value_type: U_WORD
+  - platform: modbus_controller  
+    modbus_controller_id: sofarME3000
+    id: inverter_battery_temperature
+    name: "inverter_battery_temperature"
+    device_class: "temperature"
+    address: 0x0211
+    unit_of_measurement: "°C"
+    state_class: "measurement"
+    register_type: holding
+    value_type: S_WORD 
+  - platform: modbus_controller  
+    modbus_controller_id: sofarME3000
+    id: inverter_feed_in_out
+    name: "inverter_feed_in_out"
+    address: 0x0212
+    device_class: "power"
+    unit_of_measurement: "kW"
+    accuracy_decimals: 2
+    state_class: "measurement"
+    register_type: holding
+    value_type: S_WORD 
+    filters:
+      - multiply: 0.01
+  - platform: modbus_controller  
+    modbus_controller_id: sofarME3000
+    id: inverter_load_power
+    name: "inverter_load_power"
+    address: 0x0213
+    unit_of_measurement: "kW"
+    device_class: "power"
+    accuracy_decimals: 2
+    state_class: "measurement"
+    register_type: holding
+    value_type: U_WORD 
+    filters:
+      - multiply: 0.01
+  - platform: modbus_controller  
+    modbus_controller_id: sofarME3000
+    id: inverter_input_output_power
+    name: "inverter_input_output_power"
+    address: 0x0214
+    unit_of_measurement: "kW"
+    device_class: "power"
+    state_class: "measurement"
+    accuracy_decimals: 2
+    register_type: holding
+    value_type: S_WORD 
+    filters:
+      - multiply: 0.01
+  - platform: modbus_controller  
+    modbus_controller_id: sofarME3000
+    id: inverter_power_generation
+    name: "inverter_power_generation"
+    address: 0x0215
+    unit_of_measurement: "kW"
+    device_class: "power"
+    state_class: "measurement"
+    accuracy_decimals: 2
+    register_type: holding
+    value_type: U_WORD 
+    filters:
+      - multiply: 0.01
+  - platform: modbus_controller  
+    modbus_controller_id: sofarME3000
+    id: inverter_eps_output_voltage
+    name: "inverter_esp_output_voltage"
+    address: 0x0216
+    unit_of_measurement: "V"
+    state_class: "measurement"
+    accuracy_decimals: 1
+    register_type: holding
+    value_type: U_WORD 
+    filters:
+      - multiply: 0.1
+  - platform: modbus_controller  
+    modbus_controller_id: sofarME3000
+    id: inverter_eps_output_power 
+    name: "inverter_esp_output_power"
+    address: 0x0217
+    unit_of_measurement: "kW"
+    device_class: "power"
+    state_class: "measurement"
+    accuracy_decimals: 2
+    register_type: holding
+    value_type: U_WORD 
+    filters:
+      - multiply: 0.01
+  - platform: modbus_controller  
+    modbus_controller_id: sofarME3000
+    id: inverter_today_generation
+    name: "inverter_today_generation"
+    address: 0x0218
+    device_class: "energy"
+    unit_of_measurement: "kWh"
+    state_class: "total"
+    accuracy_decimals: 2
+    register_type: holding
+    value_type: U_WORD 
+    filters:
+      - multiply: 0.01
+  - platform: modbus_controller  
+    modbus_controller_id: sofarME3000
+    id: inverter_today_export 
+    name: "inverter_today_export"
+    address: 0x0219
+    device_class: "energy"
+    unit_of_measurement: "kWh"
+    state_class: "total"
+    accuracy_decimals: 2
+    register_type: holding
+    value_type: U_WORD 
+    filters:
+      - multiply: 0.01
+  - platform: modbus_controller  
+    modbus_controller_id: sofarME3000
+    id: inverter_today_import 
+    name: "inverter_today_import"
+    address: 0x021A
+    device_class: "energy"
+    unit_of_measurement: "kWh"
+    state_class: "total"
+    accuracy_decimals: 2
+    register_type: holding
+    value_type: U_WORD 
+    filters:
+      - multiply: 0.01
+  - platform: modbus_controller  
+    modbus_controller_id: sofarME3000
+    id: inverter_today_load_consumption 
+    name: "inverter_today_load_consumption"
+    address: 0x021B
+    device_class: "energy"
+    unit_of_measurement: "kWh"
+    state_class: "total"
+    accuracy_decimals: 2
+    register_type: holding
+    value_type: U_WORD 
+    filters:
+      - multiply: 0.01
+  - platform: modbus_controller  
+    modbus_controller_id: sofarME3000
+    id: inverter_total_generation 
+    name: "inverter_total_generation"
+    address: 0x021C
+    state_class: "total_increasing"
+    device_class: "energy"
+    unit_of_measurement: "kWh"
+    register_type: holding
+    value_type: U_DWORD 
+  - platform: modbus_controller  
+    modbus_controller_id: sofarME3000
+    id: inverter_total_export_power 
+    name: "inverter_total_export_power"
+    address: 0x021E
+    device_class: "energy"
+    unit_of_measurement: "kWh"
+    state_class: "total_increasing"
+    register_type: holding
+    value_type: U_DWORD
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    id: inverter_total_import_power
+    name: "inverter_total_import_power"
+    address: 0x0220
+    device_class: "energy"
+    unit_of_measurement: "kWh"
+    state_class: "total_increasing"
+    register_type: holding
+    value_type: U_DWORD
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    id: inverter_total_load_power
+    name: "inverter_total_load_power"
+    address: 0x0222
+    device_class: "energy"
+    unit_of_measurement: "kWh"
+    state_class: "total_increasing"
+    register_type: holding
+    value_type: U_DWORD
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    id: inverter_generation_current
+    name: "inverter_generation_current"
+    address: 0x0236
+    device_class: "current"
+    unit_of_measurement: "A"
+    state_class: "measurement"
+    register_type: holding
+    value_type: U_WORD 
+  - platform: modbus_controller  
+    modbus_controller_id: sofarME3000
+    id: inverter_inner_temperature 
+    name: "inverter_inner_temperature"
+    device_class: "temperature"
+    address: 0x0238
+    unit_of_measurement: "°C"
+    state_class: "measurement"
+    register_type: holding
+    value_type: S_WORD 
+  - platform: modbus_controller  
+    modbus_controller_id: sofarME3000
+    id: inverter_heatsink_temperature 
+    name: "inverter_heatsink_temperature"
+    device_class: "temperature"
+    address: 0x0239
+    unit_of_measurement: "°C"
+    state_class: "measurement"
+    register_type: holding
+    value_type: S_WORD
+  - platform: modbus_controller  
+    modbus_controller_id: sofarME3000
+    id: inverter_country 
+    name: "inverter_country"
+    address: 0x023A
+    register_type: holding
+    value_type: U_WORD
+  - platform: modbus_controller  
+    modbus_controller_id: sofarME3000
+    id: inverter_dc_current 
+    name: "inverter_dc_current"
+    address: 0x023B
+    device_class: "current"
+    unit_of_measurement: "A"
+    accuracy_decimals: 3
+    state_class: "measurement"
+    register_type: holding
+    value_type: U_DWORD
+    filters:
+      - multiply: 0.001
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    id: inverter_dc_voltage
+    name: "inverter_dc_voltage"
+    address: 0x023C
+    unit_of_measurement: "V"
+    accuracy_decimals: 1
+    state_class: "measurement"
+    register_type: holding
+    value_type: U_DWORD
+    filters:
+      - multiply: 0.1
+
+
+
+##########################################################################
+# BINARY sensors
+#
+# For the ME3000, binary sensors essentially are bits set for fault 
+# and diagnostic messages
+#
+#########################################################################
+binary_sensor:
+# 0x0201 UINT16 Fault message list 1
+# 0x0202
+# 0x0203
+# 0x0204
+# 0x0205
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID01 Grid Over Voltage Protection
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x201
+    bitmask: 0x1
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID02 Grid Under Voltage Protection
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x201
+    bitmask: 0x2
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID03 Grid Over Frequency Protection
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x201
+    bitmask: 0x4
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID04 Grid Under Frequency Protection
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x201
+    bitmask: 0x8
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID05 Battery Over Voltage
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x201
+    bitmask: 0x10
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID06 RESERVED
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x201
+    bitmask: 0x20
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID07 RESERVED 
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x201
+    bitmask: 0x40
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID08 RESERVED 
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x201
+    bitmask: 0x80
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID09 LLCBus Over Voltage Hardware Protection
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x201
+    bitmask: 0x100
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID10 Bus Over Voltage Hardware Protection
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x201
+    bitmask: 0x200
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID11 BuckBoost over Current Hardware Protection
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x201
+    bitmask: 0x400
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID12 Battery over Current Hardware Protection
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x201
+    bitmask: 0x800
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID13 RESERVED
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x201
+    bitmask: 0x1000
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID14 RESERVED
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x201
+    bitmask: 0x2000
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID15 Output Current Hardware Protection
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x201
+    bitmask: 0x4000
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID16 RESERVED
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x201
+    bitmask: 0x8000
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID17 HwADFaultIGrid current sampling error
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x202
+    bitmask: 0x0001
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID18 HwADFaultDCI DCI sampling error
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x202
+    bitmask: 0x0002
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID19 HwADFaultVGrid voltage sampling error
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x202
+    bitmask: 0x0004
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID20 Reserved
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x202
+    bitmask: 0x0008
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID21 Main chip fault
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x202
+    bitmask: 0x0010
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID22 Hardware auxiliary power fault
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x202
+    bitmask: 0x0020
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID23 Reserved
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x202
+    bitmask: 0x0040
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID24 Reserved
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x202
+    bitmask: 0x0080
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID25
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x202
+    bitmask: 0x0100
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID26
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x202
+    bitmask: 0x0200
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID27
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x202
+    bitmask: 0x0400
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID28
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x202
+    bitmask: 0x0800
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID29
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x202
+    bitmask: 0x1000
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID30
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x202
+    bitmask: 0x2000
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID31
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x202
+    bitmask: 0x4000
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    name: ID32
+    entity_category: diagnostic
+    device_class: problem
+    register_type: read
+    address: 0x202
+    bitmask: 0x8000
+
+
+
+##########################################################################
+# TEXT sensors
+#
+# For the ME3000, text sensors are states 
+#
+#########################################################################
+text_sensor:
+# 0x0200 
+  - platform: modbus_controller
+    modbus_controller_id: sofarME3000
+    id: running_state
+    bitmask: 0
+    register_type: holding
+    address: 0x200
+    raw_encode: HEXBYTES
+    name: running_state
+    lambda: |-
+      uint16_t value = modbus_controller::word_from_hex_str(x, 0);
+      switch (value) {
+        case 0: return std::string("Wait");
+        case 1: return std::string("Check");
+        case 2: return std::string("Normal");
+        case 3: return std::string("Check Discharge");
+        case 4: return std::string("Discharge");
+        case 5: return std::string("EPS");
+        case 6: return std::string("Fault");
+        case 7: return std::string("Permanent Fault");
+        default: return std::string("Unknown state");
+      }
+      return x;

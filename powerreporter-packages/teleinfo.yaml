@@ -1,0 +1,52 @@
+###############################################
+#
+# TELEINFO via Linky (ou Sagem)
+#
+#
+###############################################
+uart:
+  - id: uart_linky
+    rx_pin: ${linky_rx} #GPIO33
+    tx_pin: ${linky_tx} #GPIO32
+    baud_rate: ${linky_speed} # 1200/9600
+    parity: EVEN
+    data_bits: 7
+
+
+teleinfo:
+  id: myteleinfo
+  uart_id: uart_linky
+  update_interval: 12s
+  historical_mode: ${linky_histo} # true/false
+
+sensor:
+  - platform: teleinfo
+    tag_name: "HCHC"
+    name: "hchc"
+    device_class: "energy"
+    state_class: "total"
+    unit_of_measurement: "Wh"
+    icon: mdi:flash
+    teleinfo_id: myteleinfo
+  - platform: teleinfo
+    tag_name: "HCHP"
+    name: "hchp"
+    device_class: "energy"
+    state_class: "total"
+    unit_of_measurement: "Wh"
+    icon: mdi:flash
+    teleinfo_id: myteleinfo
+  - platform: teleinfo
+    tag_name: "PAPP"
+    name: "papp"
+    device_class: "power"
+    state_class: "measurement"
+    unit_of_measurement: "VA"
+    icon: mdi:flash
+    teleinfo_id: myteleinfo
+
+text_sensor:
+  - platform: teleinfo
+    tag_name: "OPTARIF"
+    name: "optarif"
+    teleinfo_id: myteleinfo
